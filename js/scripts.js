@@ -1,7 +1,7 @@
-const tttGame = ([...board], marker) => {
+const tttGame = (() => {
 
-    this.board = board
-    this.marker = marker
+    let board = []
+    let marker = 'X'
 
     const getBoard = () => {
         return board
@@ -15,7 +15,7 @@ const tttGame = ([...board], marker) => {
         if (board[index] == '') {
             
             board[index] = marker
-            // console.log(`Play(${index} -> ${marker})`,index, board, checkWinner())
+            console.log(`Play(${index} -> ${marker})`,index, board, checkWinner())
             if (marker == 'X') {
                 marker = 'O'
             } else {
@@ -25,9 +25,6 @@ const tttGame = ([...board], marker) => {
             return true
         }
         return false
-    }
-    const hasSpaces = () => {
-        return board.some((item) => item = '')
     }
 
     const checkWinner = () => { 
@@ -52,22 +49,13 @@ const tttGame = ([...board], marker) => {
         return state
     }
 
-    const declareWinner = () => {
-        let message = 'It\'s a Tie!'
-
-        if (checkWinner() === true) {
-            message = (marker == 'X') ? 'O' : 'X'
-            message += ' is the Winner!'
+    const flush = () => {
+        for (let index = 0; index < 9; index++) {
+            board[index] = ''
+            marker = 'X'
         }
-
-        document.querySelector('.popup-text').textContent = message
-        document.querySelector('.popup').style.display = 'flex'
-
-        document.getElementById('restart-game').addEventListener('click', () => {
-            gameInit()
-        })
-        
     }
+
 
 
     let playerMarker
@@ -84,7 +72,7 @@ const tttGame = ([...board], marker) => {
               
                     board[position] = aiMarker
 
-                    score = minmax(board, marker, false)
+                    score = minmax(board, false)
 
                     board[position] = ''
 
@@ -97,7 +85,7 @@ const tttGame = ([...board], marker) => {
 
     }
 
-    const minmax = (board, jMarker, isMaximizing) => {
+    const minmax = (board, isMaximizing) => {
         
         
         let winState = checkWinner()
@@ -119,7 +107,7 @@ const tttGame = ([...board], marker) => {
                 if (board[position] == '') {
                 
                     board[position] = aiMarker
-                    score = minmax(board, marker, false)
+                    score = minmax(board, false)
                     board[position] = ''
                     moveList.push({position, score})
                 }
@@ -133,7 +121,7 @@ const tttGame = ([...board], marker) => {
                 if (board[position] == '') {
 
                     board[position] = playerMarker
-                    score = minmax(board, marker, true)
+                    score = minmax(board, true)
                     board[position] = ''
                     moveList.push({position, score})
                 }
@@ -144,82 +132,100 @@ const tttGame = ([...board], marker) => {
         }
     }
 
-    const makeMove = (index) => {
-      //  console.log(area, index)
-        let mk = marker
-        let area = document.getElementById(`area-${index}`)
-        if (board[index] == '') {
-          //  console.log(board[index])
-            play(index)
-           // console.log('play',board[index])
-            area.textContent = mk
-            area.classList.add('area-clicked')
-            //console.log(board)
-            //console.log('Winner?: ',checkWinner())
-            if (checkWinner() == true || checkWinner() == 'tie') declareWinner()
-        }
-       
-    }
 
-    const render = () => {
-    
-        document.querySelector('.popup').style.display = 'none'
-
-        let boardFrame = document.querySelector('.gameboard')
-        boardFrame.style.display = 'grid'
-        boardFrame.innerHTML = ''
-        this.board.forEach((item, index) => {
-            let area = document.createElement('div')
-            area.classList.add('area')
-            area.textContent = item
-            area.id = 'area-' + index
-            boardFrame.append(area)
-            area.addEventListener('click', () => {
-                makeMove(index)
-                if (checkWinner() === false) {
-                    document.getElementById('popup-transparent').style.display = 'flex';
-                    setTimeout(() => makeMove(aiMove()), 1000);
-                    setTimeout(() => document.getElementById('popup-transparent').style.display = 'none', 1000);
-                }
-                
-               // 
-
-            })
-        });
-
-        document.getElementById('start-game').addEventListener('click', () => {
-            makeMove(aiMove())
-
-                  
-        });
-        
-    };
 
     return {
         board,
-        render,
         getBoard,
         getMarker,        
         play,
         checkWinner,
-        hasSpaces,
         aiMove,
-        makeMove
+        flush
     }
-}
+})();
 
-const Player = (name, marker) => {
-    this.name = name;
-    this.marker = marker;
-    return {name, marker};
-}
+const render = (game) => {
+    
+    let boardFrame = document.querySelector('.gameboard')
+    boardFrame.style.display = 'grid'
+    boardFrame.innerHTML = ''
+    game.board.forEach((item, index) => {
+        let area = document.createElement('div')
+        area.classList.add('area')
+        area.id = 'area-' + index
+        boardFrame.append(area)
+        area.addEventListener('click', () => {
+            if (makeMove(index)) {
+                if (game.checkWinner() === false) {
+                    document.getElementById('popup-transparent').style.display = 'flex';
+                    setTimeout(() => makeMove(game.aiMove()), 1000);
+                    setTimeout(() => document.getElementById('popup-transparent').style.display = 'none', 1000);
+                }
+            }
+           // 
 
-function gameInit() {
-    let gameboard = ['', '', '', '', '', '', '', '', '']
-    let game = tttGame(gameboard, 'X')
-    game.render()
-}
+        })
+    });
 
-gameInit()
+    function restart(game) {
+
+        document.querySelector('.popup').style.display = 'none'
+
+        game.flush()
+        game.getBoard().forEach((item, index) =>{
+            let area = document.getElementById(`area-${index}`)
+            area.classList.remove('area-clicked')
+            area.textContent = game.getBoard()[index]
+        })
+    }
+
+    function makeMove(index) {
+
+          let area = document.getElementById(`area-${index}`)
+          if (game.board[index] == '') {
+
+              area.textContent = game.getMarker()
+              game.play(index)
+              area.classList.add('area-clicked')
+
+              if (game.checkWinner() == true || game.checkWinner() == 'tie') declareWinner()
+              return true
+          } else return false
+         
+    }
+
+
+    function declareWinner() {
+        let message = 'It\'s a Tie!'
+
+        if (game.checkWinner() === true) {
+            message = (game.getMarker() == 'X') ? 'O' : 'X'
+            message += ' is the Winner!'
+        }
+
+        document.querySelector('.popup-text').textContent = message
+        document.querySelector('.popup').style.display = 'flex'
+
+        document.getElementById('restart-game').addEventListener('click', () => {
+            game.flush()
+            restart(game)
+        })
+        
+    }
+    
+
+    document.getElementById('start-game').addEventListener('click', () => {
+        makeMove(game.aiMove())
+
+              
+    })
+    
+};
+
+
+tttGame.flush()
+render(tttGame)
+
 
 
